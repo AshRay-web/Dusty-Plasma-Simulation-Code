@@ -1,0 +1,71 @@
+close all;clear
+global niL vmLi vti kB vmaxLi vcLi Ef dx X nx    %Define global parameters
+inputfilesb;
+couplingparameters;
+EfL=95.80; 
+vdzL= EfL/B*sin(theta);
+%vdyL=0;
+DLe=sqrt(epsilon_not*kB*Tpse/nps/e^2);
+L=eval(L);
+vmaxLi=vcLi-4*vti;
+
+I=1;
+    X=linspace(0,L,nx);
+    dx=X(2)-X(1);3d
+    vxLi=linspace(vmaxLi,vcLi,ntra);
+    vyLi=linspace(-1.5*vti,1.5*vti,ntra);
+    vzLi=linspace(-1.5*vti,1.5*vti+vdzL,ntra);
+    dvxLi=abs(vxLi(2)-vxLi(1));
+    dvyLi=abs(vyLi(2)-vyLi(1));
+    dvzLi=abs(vzLi(2)-vzLi(1));
+    if dx/DLe>0.8
+        disp('Your grid width is larger than Debye length')
+        disp('Ctrl-C for stop')
+        pause
+    end
+    phi=eval(phiwx); phi(1)=phiw; phi(nx)=phiL;
+ for j=2:nx-1
+     Ef(j)=0.5*(phi(j-1)-phi(j+1))/dx;
+ end
+     Ef(1)=0.5*(3*phi(1)-4*phi(2)+phi(3))/dx;
+     Ef(nx)=0.5*(-3*phi(nx)+4*phi(nx-1)-phi(nx-2))/dx;     
+iondensitysolver
+     ne=nps*exp(e*phi/kB/Te).*(1+erf(sqrt(e*(phi-phi(1))/kB/Te)))/(1+erf(-e*phi(1)/kB/Te));
+     ni=niL*ni/max(ni); ne=niL*ne/max(ne);
+OML_SOLVER
+     rho=e*ni-e*ne+qdn*nd ; 
+     d=-2*ones(1,nx); d(1)=1; d(nx)=1;  u=ones(1,nx-1);
+     ML=diag(d)+diag(u,1)+diag(u,-1); ML(1,2)=0; ML(nx,nx-1)=0;
+     clear d u
+     poissonsolver
+     disp(phi)
+     while max(abs(phin-phi))>deltaphi
+         I=I+1
+         fluctuation=max(abs(phin-phi))
+         phi=phin;
+     for j=2:nx-1
+         Ef(j)=0.5*(phi(j-1)-phi(j+1))/dx;
+     end
+     Ef(1)=0.5*(3*phi(1)-4*phi(2)+phi(3))/dx;
+     Ef(nx)=0.5*(-3*phi(nx)+4*phi(nx-1)-phi(nx-2))/dx;   
+ iondensitysolver
+     ne=nps*exp(e*phi/kB/Te).*(1+erf(sqrt(e*(phi-phi(1))/kB/Te)))/(1+erf(-e*phi(1)/kB/Te));
+     ni=niL*ni/max(ni); ne=niL*ne/max(ne);
+     vcLe=sqrt(-2*e*phiw/me);
+ OML_SOLVER                                      % Calcualte the dust charge here too 
+     rho=e*ni-e*ne+qdn* nd ; 
+
+
+
+     poissonsolver
+%=======================Showing the plot during simulation run.
+     subplot(2,2,[1,2]),plot(X/DLe, ni,'b',X/DLe,ne,'k')
+     title('Particles density evolution')
+     data = load("Modifiled_DustPlasmaresultnd=1e4.mat")
+     subplot(2,2,[3,4]),plot(X/DLe,phi,'r',X/DLe,data.phi,'g')
+     title('Electric potential evolution')
+     pause(0.1)
+     end 
+    
+     plot(X/DLe, phi,'b')
+      
